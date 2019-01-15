@@ -1,6 +1,9 @@
 import java.io.File
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.ceil
+import kotlin.math.sqrt
+import kotlin.random.Random
 
 
 data class DataRow(var list: List<String>)
@@ -14,7 +17,7 @@ class Distance {
             var d = l1[i].toDouble()-l2[i].toDouble()
             distance += (d*d)
         }
-        return (distance)
+        return sqrt(distance)
 
     }
 }
@@ -59,7 +62,7 @@ class Knn (var k:Int = 3){
     fun runClassifier(cv:Int){
         var accuracy = 0.0
         for(i in 1..10){
-            dataMatrix.shuffle(Random(1))
+            dataMatrix.shuffle(Random(i))
             //println("$i" + dataMatrix)
             testAndTrain()
             accuracy += calculate()
@@ -81,7 +84,8 @@ class Knn (var k:Int = 3){
 
     fun calculate():Double{
 
-        var result = mutableListOf<Double>()
+        //var result = mutableListOf<Double>()
+        var result = mutableMapOf<Double,String>()
         var classMap = mutableMapOf<Double,String>()
         var correct = 0
         for(i in 0 until (testSet.size)){
@@ -93,25 +97,32 @@ class Knn (var k:Int = 3){
                 var len2 = element.list.size
                 var temp2 = element.list.subList(1,len2)
                 var x = Distance().calculateDistance(temp1, temp2)
-                result.add(x)
-                classMap[x] = element.list[0]
+                result.put(x, element.list[0])
+                //classMap[x] = element.list[0]
             }
-            var c2 = getClass(result,classMap)
+
+            var c2 = getClass(result)
             //println("$c1 $c2")
             if (c1 == c2){
                 correct++
             }
         }
+        println(correct.toDouble()/testSet.size)
         return (correct.toDouble()/testSet.size)
 
     }
 
-    fun getClass(result: MutableList<Double>, classMap: MutableMap<Double,String>):String?{
-        result.sort()
-        var ans = result.subList(0,k)
-        var res = ans.groupingBy { it }.eachCount().toSortedMap()
-        var n = res.keys.toDoubleArray()[0]
-        return classMap[n]
+    fun getClass(result: MutableMap<Double,String>):String?{
+        var sortedResult = result.toSortedMap()
+        //println(sortedResult)
+        var ans = ArrayList(sortedResult.values)
+        var neighbor = ans.subList(0,k)
+        var res = neighbor.groupingBy { it }.eachCount()
+        res = res.toList().sortedBy { (_, value) -> value}.toMap()
+        var clsMap = ArrayList(res.keys)
+        var extractedClass = clsMap[clsMap.size-1]
+
+        return extractedClass
 
     }
 
@@ -121,7 +132,7 @@ class Knn (var k:Int = 3){
 fun main(args: Array<String>) {
 
     var fileName = "bs.data"
-    var k = 25
+    var k = 3
     var crossValidation = 10
     var obj = Knn(k)
     obj.inputAndParse(fileName)
